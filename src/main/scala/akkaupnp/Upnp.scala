@@ -37,10 +37,10 @@ object Upnp {
 
   case object GetExternalIPAddress
 
-  class SoupException(msg: String) extends RuntimeException(msg)
+  class SoapException(msg: String) extends RuntimeException(msg)
 
 
-  def soupRequestBuilder(device: UpnpDevice, func: String, body: Elem) = {
+  def soapRequestBuilder(device: UpnpDevice, func: String, body: Elem) = {
     val requestBody =
       <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
                   s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -172,7 +172,7 @@ class Upnp extends Actor with ActorLogging with Stash {
 
   def sendSoapRequest(upnp: UpnpDevice, func: String, body: Elem): Future[Elem] = {
     val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-    pipeline(soupRequestBuilder(upnp, func, body))
+    pipeline(soapRequestBuilder(upnp, func, body))
       .map(resp => {
       log.info("Soap response => ", resp.entity.asString)
       XML.loadString(resp.entity.asString)
@@ -183,7 +183,7 @@ class Upnp extends Actor with ActorLogging with Stash {
         val faultString = (fault \ "faultstring").text
         val errorCode = (fault \ "detail" \ "UPnPError" \ "errorCode").text
         val errorDescription = (fault \ "detail" \ "UPnPError" \ "errorDescription").text
-        Future.failed(new SoupException(s"Upnp $func error $faultCode[$faultString] $errorCode => $errorDescription"))
+        Future.failed(new SoapException(s"Upnp $func error $faultCode[$faultString] $errorCode => $errorDescription"))
       } else {
         Future.successful(result)
       }
